@@ -1,0 +1,80 @@
+name: Deploy to __HOST_LABEL__
+
+# Auto-deploy on every push to the `deploy` branch, via a self-hosted runner
+# that lives ON the server (the Mealie box). The box is reachable outbound-only
+# (behind the Cloudflare Tunnel, no open inbound ports), so instead of SSHing in
+# from GitHub's cloud, the runner connects *outbound* to GitHub and runs the
+# deploy locally.
+#
+# Unlike a plain source deploy, this service runs as a Docker container, so a
+# `git pull` alone is NOT enough — the image must be rebuilt and the container
+# recreated. This workflow does: pull -> docker compose build -> up -d.
+#
+# >>> FILL IN before first use (see deploy/DEPLOY.md) <<<
+#   __HOST_LABEL__        short slug for the box; also the runner label
+#   __SERVER_CLONE_PATH__ absolute path of THIS repo's clone on the box
+#   __COMPOSE_FILE__      compose file that defines the mealie-mcp service
+#   __COMPOSE_SERVICE__   the service name (e.g. mealie-mcp)
+
+on:
+  push:
+    branches: [deploy]
+  workflow_dispatch: {}   # manual re-deploy from the Actions tab
+
+# Serialize deploys so two quick pushes don't rebuild at the same time.
+concurrency:
+  group: deploy-__HOST_LABEL__
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, __HOST_LABEL__]
+    steps:
+      - name: Pull, rebuild, and restart the mealie-mcp container
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The live clone the box builds from (owned by the runner's user).
+          DIR="__SERVER_CLONE_PATH__"
+          # Compose file that defines the mealie-mcp service, and the service name.
+          COMPOSE_FILE="__COMPOSE_FILE__"
+          SERVICE="__COMPOSE_SERVICE__"
+
+          if [ ! -d "$DIR/.git" ]; then
+            echo "::error title=Server clone missing::No git repo at $DIR — is the runner running as the user that owns the clone?"
+            exit 1
+          fi
+
+          cd "$DIR"
+          echo "Deploying into: $DIR"
+
+          before="$(git rev-parse HEAD)"
+          git pull --ff-only
+          after="$(git rev-parse HEAD)"
+
+          if [ "$before" = "$after" ]; then
+            echo "Already up to date at ${after:0:7} — nothing to publish."
+            exit 0
+          fi
+
+          echo "Published ${before:0:7} -> ${after:0:7}. Changed files:"
+          git diff --name-only "$before" "$after"
+
+          echo "Rebuilding image and recreating container..."
+          docker compose -f "$COMPOSE_FILE" build "$SERVICE"
+          docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+
+          echo "Waiting for /health..."
+          for i in $(seq 1 30); do
+            if docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" \
+                 python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)" 2>/dev/null; then
+              echo "Container healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::warning title=Health check timed out::Container restarted but /health did not return 200 within 60s. Check 'docker compose logs $SERVICE'."

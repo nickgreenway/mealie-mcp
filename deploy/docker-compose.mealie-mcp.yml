@@ -1,0 +1,39 @@
+# Mealie MCP — remote HTTP deployment (safe mode, behind Cloudflare Tunnel).
+#
+# Two ways to use this:
+#   A) Merge the `mealie-mcp` service below into your existing Mealie compose
+#      stack (so it shares Mealie's network and `http://mealie:9000` resolves).
+#   B) Run it standalone and attach it to Mealie's network as `external` (the
+#      `networks` block at the bottom shows this form).
+#
+# Secrets are read from ../.env (gitignored) — MEALIE_URL + MEALIE_API_TOKEN,
+# and the two auth secrets below. Do NOT put secrets in this committed file.
+#
+# >>> FILL IN: __MEALIE_NETWORK__ (the docker network Mealie is on) <<<
+
+services:
+  mealie-mcp:
+    build: ..                      # this repo (Dockerfile at repo root)
+    # image: ghcr.io/nickgreenway/mealie-mcp:latest   # once/if you publish one
+    container_name: mealie-mcp
+    restart: unless-stopped
+    env_file:
+      - ../.env                    # MEALIE_URL, MEALIE_API_TOKEN, MCP_SECRET_PATH, MCP_BEARER_TOKEN
+    environment:
+      MCP_TRANSPORT: http
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8000"
+      MCP_PATH: /mcp
+      MEALIE_MCP_MODE: safe
+      # For in-network access, override MEALIE_URL to the internal service name
+      # (faster + doesn't hairpin through the tunnel). Uncomment and set the port:
+      # MEALIE_URL: http://mealie:9000
+    # No host port publish needed if cloudflared runs on the same network and
+    # points at http://mealie-mcp:8000. Add `ports:` only for local debugging.
+    networks:
+      - mealie
+
+networks:
+  mealie:
+    external: true
+    name: __MEALIE_NETWORK__       # e.g. mealie_default — `docker network ls`
