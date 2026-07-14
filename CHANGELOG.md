@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added optional auth gate for the HTTP transport: `MCP_SECRET_PATH` mounts the endpoint under a secret URL path (`/<secret>/mcp`, other paths 404), and optional `MCP_BEARER_TOKEN` requires `Authorization: Bearer <token>` (with `/health` exempt)
+- Added a startup warning when the HTTP transport runs with no secret path and no bearer token set
+- Added `src/auth.py` (secret-path composition + constant-time bearer ASGI middleware) with unit tests in `tests/test_auth.py`
 - Added optional Streamable HTTP transport for remote deployment, selected via `MCP_TRANSPORT=http` (default remains `stdio`, unchanged behavior)
 - Added `MCP_HOST`, `MCP_PORT`, and `MCP_PATH` environment variables to configure the HTTP transport bind address and mount path
 - Added an unauthenticated `GET /health` endpoint (returns `200 {"status": "ok"}`) for container/tunnel monitoring; inert under stdio

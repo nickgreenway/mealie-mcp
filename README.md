@@ -145,9 +145,29 @@ MCP_TRANSPORT=http python -m src.server
 A `GET /health` endpoint returns `200 {"status": "ok"}` for container/tunnel
 monitoring. It is unauthenticated by design and inert under stdio.
 
-> **⚠️ Security:** the HTTP transport has no authentication on its own. Do not
-> expose it to an untrusted network without an auth gate — see
-> `MCP_SECRET_PATH` / `MCP_BEARER_TOKEN`.
+### Authenticating the HTTP endpoint
+
+The HTTP transport has **no authentication on its own**. Two opt-in gates
+protect an internet-facing endpoint; both are inert under stdio.
+
+| Variable | Default | Description |
+|---|---|---|
+| `MCP_SECRET_PATH` | _(none)_ | Secret URL path segment. The endpoint mounts under `/<secret>/mcp`; any other path returns 404. Primary gate — rides in the URL, so it works with URL-only clients like Claude custom connectors. |
+| `MCP_BEARER_TOKEN` | _(none)_ | Optional second gate. Requires `Authorization: Bearer <token>` on every request (`/health` is exempt); otherwise 401. |
+
+```bash
+# Secret path only (endpoint at /<secret>/mcp):
+MCP_TRANSPORT=http MCP_SECRET_PATH="$(openssl rand -hex 24)" python -m src.server
+
+# Both gates:
+MCP_TRANSPORT=http \
+  MCP_SECRET_PATH="$(openssl rand -hex 24)" \
+  MCP_BEARER_TOKEN="$(openssl rand -hex 24)" \
+  python -m src.server
+```
+
+Point your MCP client at `https://<host>/<secret>/mcp`. Running `http` with
+neither gate set logs a warning and leaves the endpoint fully open.
 
 ## Usage Examples
 
@@ -285,6 +305,8 @@ mealie-mcp/
 - **Never commit API tokens** - Use environment variables
 - The API token has full access to your Mealie account
 - Consider creating a dedicated Mealie user for the MCP server
+- **Exposing the HTTP transport?** Always set `MCP_SECRET_PATH` (and ideally
+  `MCP_BEARER_TOKEN`). See [Authenticating the HTTP endpoint](#authenticating-the-http-endpoint).
 
 ## Requirements
 

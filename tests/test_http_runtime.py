@@ -93,6 +93,22 @@ class TestRunDispatch:
                     "host": "127.0.0.1",
                     "port": 8123,
                     "path": "/mcp",
+                    "middleware": None,
                 },
             )
         ]
+
+    def test_http_applies_secret_path_and_bearer(self):
+        mcp = _FakeMCP()
+        http_runtime.run(
+            mcp,
+            env={
+                "MCP_TRANSPORT": "http",
+                "MCP_PATH": "/mcp",
+                "MCP_SECRET_PATH": "s3cr3t",
+                "MCP_BEARER_TOKEN": "tok",
+            },
+        )
+        (_, kwargs) = mcp.calls[0]
+        assert kwargs["path"] == "/s3cr3t/mcp"
+        assert kwargs["middleware"] is not None and len(kwargs["middleware"]) == 1

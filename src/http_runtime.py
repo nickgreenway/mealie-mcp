@@ -19,7 +19,10 @@ reachable from an untrusted network it MUST be protected (see the auth gate:
 from __future__ import annotations
 
 import os
+import sys
 from typing import Mapping
+
+from auth import build_asgi_middleware, build_mcp_path, get_bearer_token, get_secret_path
 
 DEFAULT_TRANSPORT = "stdio"
 DEFAULT_HOST = "0.0.0.0"
@@ -89,9 +92,30 @@ def run(mcp, env: Mapping[str, str] | None = None) -> None:
         return
 
     settings = get_http_settings(e)
+    path = build_mcp_path(settings["path"], e)
+    middleware = build_asgi_middleware(e)
+
+    _warn_if_unguarded(e)
+
     mcp.run(
         transport="http",
         host=settings["host"],
         port=settings["port"],
-        path=settings["path"],
+        path=path,
+        middleware=middleware or None,
     )
+
+
+def _warn_if_unguarded(env: Mapping[str, str]) -> None:
+    """Emit a stderr warning when the HTTP transport has no auth gate.
+
+    Running http with neither a secret path nor a bearer token leaves the
+    endpoint open to anyone who can reach it.
+    """
+    if not get_secret_path(env) and not get_bearer_token(env):
+        print(
+            "WARNING: MCP_TRANSPORT=http with no MCP_SECRET_PATH or "
+            "MCP_BEARER_TOKEN set. The endpoint is UNAUTHENTICATED. Do not "
+            "expose it to an untrusted network.",
+            file=sys.stderr,
+        )
