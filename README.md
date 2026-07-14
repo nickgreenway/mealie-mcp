@@ -123,6 +123,32 @@ Restart Claude Code and try:
 Can you search for recipes in Mealie?
 ```
 
+## Remote (HTTP) Transport
+
+By default the server runs over **stdio**, which is what Claude Desktop and
+Claude Code use. It can also run as a remote **Streamable HTTP** server so
+web/mobile MCP clients can reach it over the network. This is fully opt-in via
+environment variables — the stdio default is unchanged.
+
+| Variable | Default | Description |
+|---|---|---|
+| `MCP_TRANSPORT` | `stdio` | `stdio` or `http` |
+| `MCP_HOST` | `0.0.0.0` | Bind address (http only) |
+| `MCP_PORT` | `8000` | Bind port (http only) |
+| `MCP_PATH` | `/mcp` | URL path the MCP endpoint is mounted at (http only) |
+
+```bash
+# Run the server over HTTP on :8000/mcp
+MCP_TRANSPORT=http python -m src.server
+```
+
+A `GET /health` endpoint returns `200 {"status": "ok"}` for container/tunnel
+monitoring. It is unauthenticated by design and inert under stdio.
+
+> **⚠️ Security:** the HTTP transport has no authentication on its own. Do not
+> expose it to an untrusted network without an auth gate — see
+> `MCP_SECRET_PATH` / `MCP_BEARER_TOKEN`.
+
 ## Usage Examples
 
 ### Clearing Optional Fields

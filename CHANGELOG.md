@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added optional Streamable HTTP transport for remote deployment, selected via `MCP_TRANSPORT=http` (default remains `stdio`, unchanged behavior)
+- Added `MCP_HOST`, `MCP_PORT`, and `MCP_PATH` environment variables to configure the HTTP transport bind address and mount path
+- Added an unauthenticated `GET /health` endpoint (returns `200 {"status": "ok"}`) for container/tunnel monitoring; inert under stdio
+- Added `src/http_runtime.py` with the transport selector and env parsing, plus unit tests in `tests/test_http_runtime.py`
 - Added event notifications management with 6 new MCP tools (Batch 2 - Phase 2.3)
 - Added `mealie_notifications_list` tool to list all event notifications with pagination
 - Added `mealie_notifications_create` tool to create Apprise-based notifications for Mealie events

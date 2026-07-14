@@ -167,6 +167,23 @@ mcp = FastMCP("mealie")
 
 
 # =============================================================================
+# Health check (http transport only)
+# =============================================================================
+# Registered unconditionally; it is only reachable when the server runs under
+# the http transport. Under stdio there is no HTTP surface, so it is inert.
+# Intentionally unauthenticated so container/tunnel monitors can probe it
+# without knowing the secret path.
+from starlette.requests import Request  # noqa: E402
+from starlette.responses import JSONResponse  # noqa: E402
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    """Liveness probe for container/tunnel monitoring."""
+    return JSONResponse({"status": "ok", "service": "mealie"})
+
+
+# =============================================================================
 # Tools - Actions the AI can perform
 # =============================================================================
 
@@ -2516,4 +2533,8 @@ def resource_shopping_list_detail(list_id: str) -> str:
 # =============================================================================
 
 if __name__ == "__main__":
-    mcp.run()
+    # Transport is selected via MCP_TRANSPORT (default: stdio, unchanged
+    # behavior). See src/http_runtime.py for the opt-in http transport.
+    from http_runtime import run as run_server
+
+    run_server(mcp)
