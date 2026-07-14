@@ -1,4 +1,4 @@
-name: Deploy to __HOST_LABEL__
+name: Deploy to callisto
 
 # Auto-deploy on every push to the `deploy` branch, via a self-hosted runner
 # that lives ON the server (the Mealie box). The box is reachable outbound-only
@@ -10,11 +10,11 @@ name: Deploy to __HOST_LABEL__
 # `git pull` alone is NOT enough — the image must be rebuilt and the container
 # recreated. This workflow does: pull -> docker compose build -> up -d.
 #
-# >>> FILL IN before first use (see deploy/DEPLOY.md) <<<
-#   __HOST_LABEL__        short slug for the box; also the runner label
-#   __SERVER_CLONE_PATH__ absolute path of THIS repo's clone on the box
-#   __COMPOSE_FILE__      compose file that defines the mealie-mcp service
-#   __COMPOSE_SERVICE__   the service name (e.g. mealie-mcp)
+# Configured for callisto (see deploy/DEPLOY.md):
+#   host label / runner label : callisto
+#   server clone path         : /Users/nickgreenway/docker/mealie/mealie-mcp
+#   compose file              : /Users/nickgreenway/docker/mealie/docker-compose.yml
+#   compose service           : mealie-mcp
 
 on:
   push:
@@ -23,7 +23,7 @@ on:
 
 # Serialize deploys so two quick pushes don't rebuild at the same time.
 concurrency:
-  group: deploy-__HOST_LABEL__
+  group: deploy-callisto
   cancel-in-progress: false
 
 permissions:
@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, __HOST_LABEL__]
+    runs-on: [self-hosted, callisto]
     steps:
       - name: Pull, rebuild, and restart the mealie-mcp container
         shell: bash
@@ -39,10 +39,10 @@ jobs:
           set -euo pipefail
 
           # The live clone the box builds from (owned by the runner's user).
-          DIR="__SERVER_CLONE_PATH__"
+          DIR="/Users/nickgreenway/docker/mealie/mealie-mcp"
           # Compose file that defines the mealie-mcp service, and the service name.
-          COMPOSE_FILE="__COMPOSE_FILE__"
-          SERVICE="__COMPOSE_SERVICE__"
+          COMPOSE_FILE="/Users/nickgreenway/docker/mealie/docker-compose.yml"
+          SERVICE="mealie-mcp"
 
           if [ ! -d "$DIR/.git" ]; then
             echo "::error title=Server clone missing::No git repo at $DIR — is the runner running as the user that owns the clone?"

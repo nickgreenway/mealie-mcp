@@ -20,18 +20,18 @@ cloud runners can't reach in).
 
 Secrets live in a gitignored `.env` at the repo root (never committed).
 
-## Facts to fill in (placeholders in the scaffolded files)
+## Resolved box facts (callisto)
 
-Replace these before the first deploy:
-
-- `.github/workflows/deploy.yml`
-  - `__HOST_LABEL__` — short slug for the box (also the runner label), e.g. `macmini`.
-  - `__SERVER_CLONE_PATH__` — absolute path of this repo's clone on the box.
-  - `__COMPOSE_FILE__` — compose file that defines the `mealie-mcp` service.
-  - `__COMPOSE_SERVICE__` — the service name (`mealie-mcp`).
-- `deploy/docker-compose.mealie-mcp.yml`
-  - `__MEALIE_NETWORK__` — Mealie's docker network (`docker network ls`).
-  - Internal `MEALIE_URL` port.
+| Fact | Value |
+|---|---|
+| Host / runner label | `callisto` (Apple Silicon Mac) |
+| Server clone path | `/Users/nickgreenway/docker/mealie/mealie-mcp` |
+| Mealie compose file | `/Users/nickgreenway/docker/mealie/docker-compose.yml` |
+| Compose service | `mealie-mcp` |
+| Mealie internal URL | `http://mealie:9000` |
+| Docker network | `mealie_default` (shared with `mealie` + `cloudflared-mealie`) |
+| Tunnel | `cloudflared-mealie` container, token-based (dashboard-managed hostnames) |
+| Public hostname | `mealie-mcp.thenickgreenway.com` → `http://mealie-mcp:8000` |
 
 ## One-time setup on the box
 

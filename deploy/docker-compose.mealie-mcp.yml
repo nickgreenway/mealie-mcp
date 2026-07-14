@@ -9,7 +9,7 @@
 # Secrets are read from ../.env (gitignored) — MEALIE_URL + MEALIE_API_TOKEN,
 # and the two auth secrets below. Do NOT put secrets in this committed file.
 #
-# >>> FILL IN: __MEALIE_NETWORK__ (the docker network Mealie is on) <<<
+# >>> FILL IN: mealie_default (the docker network Mealie is on) <<<
 
 services:
   mealie-mcp:
@@ -36,4 +36,4 @@ services:
 networks:
   mealie:
     external: true
-    name: __MEALIE_NETWORK__       # e.g. mealie_default — `docker network ls`
+    name: mealie_default       # e.g. mealie_default — `docker network ls`
