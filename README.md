@@ -123,6 +123,40 @@ Restart Claude Code and try:
 Can you search for recipes in Mealie?
 ```
 
+## Safe Mode
+
+By default the server runs in `full` mode with every tool available. Setting
+`MEALIE_MCP_MODE=safe` unregisters risky tools **before startup**, so they are
+never advertised to the client. This is recommended when the server is exposed
+remotely (e.g. to a mobile client), where a stray tap or a prompt injection
+should not be able to destroy or leak data.
+
+Safe mode removes two groups of tools:
+
+- **Destructive** — every `*_delete`, the `*_merge` catalog operations,
+  `mealie_mealplans_delete_range`, `mealie_shopping_clear_checked`, and
+  `mealie_shopping_delete_recipe_from_list`.
+- **External-effect** — `mealie_webhooks_create/update/test`,
+  `mealie_recipe_actions_create/update/trigger`, and
+  `mealie_recipes_shared_create` (these push data to a caller-supplied URL or
+  expose a recipe publicly).
+
+Reads, creates, updates, and "add" operations remain available, so the core
+recipe / meal-plan / shopping workflow is unaffected.
+
+| Variable | Default | Description |
+|---|---|---|
+| `MEALIE_MCP_MODE` | `full` | `full` or `safe` |
+| `MEALIE_MCP_SAFE_EXTRA_DENY` | _(none)_ | Comma-separated extra tool names to also remove in safe mode |
+
+```bash
+# Register only the non-destructive, non-exfiltrating tools
+MEALIE_MCP_MODE=safe python -m src.server
+```
+
+The exact denylist lives in `src/safe_mode.py` (`DESTRUCTIVE_TOOLS` and
+`EXTERNAL_EFFECT_TOOLS`).
+
 ## Usage Examples
 
 ### Clearing Optional Fields

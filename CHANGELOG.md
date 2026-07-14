@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added opt-in safe/read-mostly tool mode via `MEALIE_MCP_MODE=safe`, which unregisters destructive tools (deletes, merges, bulk clears) and external-effect tools (webhooks, recipe actions, share-link creation) before startup so they are never advertised (default remains `full`, unchanged behavior)
+- Added `MEALIE_MCP_SAFE_EXTRA_DENY` to extend the safe-mode denylist without code changes
+- Added `src/safe_mode.py` with the `DESTRUCTIVE_TOOLS` / `EXTERNAL_EFFECT_TOOLS` denylists and `apply_safe_mode()`, plus unit tests in `tests/test_safe_mode.py`
 - Added event notifications management with 6 new MCP tools (Batch 2 - Phase 2.3)
 - Added `mealie_notifications_list` tool to list all event notifications with pagination
 - Added `mealie_notifications_create` tool to create Apprise-based notifications for Mealie events

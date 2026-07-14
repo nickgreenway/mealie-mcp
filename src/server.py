@@ -2516,4 +2516,9 @@ def resource_shopping_list_detail(list_id: str) -> str:
 # =============================================================================
 
 if __name__ == "__main__":
+    # In safe mode (MEALIE_MCP_MODE=safe) unregister risky tools before the
+    # server starts so they are never advertised. No-op in full mode (default).
+    from safe_mode import apply_safe_mode
+
+    apply_safe_mode(mcp)
     mcp.run()
