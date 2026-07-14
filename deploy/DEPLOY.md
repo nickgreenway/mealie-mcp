@@ -37,8 +37,11 @@ Replace these before the first deploy:
 
 1. Clone the fork on the box (the `deploy` branch) at the chosen path; create
    `.env` there with the secrets above.
-2. Merge the `mealie-mcp` service into the Mealie compose stack (or run the
-   standalone compose in `deploy/`), then `docker compose up -d mealie-mcp`.
+2. **Chosen layout: merge** the `mealie-mcp` service (from
+   `deploy/docker-compose.mealie-mcp.yml`) into the existing Mealie
+   `docker-compose.yml` so it shares Mealie's network, then
+   `docker compose up -d mealie-mcp`. Point `__COMPOSE_FILE__` in the workflow
+   at that Mealie compose file.
 3. Register the self-hosted runner (see the `setup-server-deploy` skill, Step 3):
    dedicated folder `~/actions-runner-mealie-mcp`, `--name macmini-mealie-mcp`,
    `--labels <host-label>`. Install as a service.
