@@ -70,6 +70,20 @@ jobs:
           echo "Published ${before:0:7} -> ${after:0:7}. Changed files:"
           git diff --name-only "$before" "$after"
 
+          # Ensure the Dockerfile's base image is in the local store. BuildKit
+          # otherwise re-resolves the tag from Docker Hub on every build, which
+          # intermittently times out / rate-limits and fails the deploy. Pull
+          # only when missing (with retries) so normal deploys stay offline-fast.
+          BASE_IMAGE="$(awk 'toupper($1)=="FROM"{print $2; exit}' "$CLONE_DIR/Dockerfile")"
+          if [ -n "$BASE_IMAGE" ] && ! docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
+            echo "Base image $BASE_IMAGE not present locally; pulling..."
+            for a in 1 2 3; do
+              docker pull "$BASE_IMAGE" && break
+              echo "pull attempt $a failed; retrying in 10s..."; sleep 10
+              [ "$a" = 3 ] && { echo "::error title=Base image pull failed::Could not pull $BASE_IMAGE after 3 attempts."; exit 1; }
+            done
+          fi
+
           echo "Rebuilding image and recreating container..."
           cd "$PROJECT_DIR"
           docker compose up -d --build "$SERVICE"
