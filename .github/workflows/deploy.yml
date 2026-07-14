@@ -13,7 +13,9 @@ name: Deploy to callisto
 # Configured for callisto (see deploy/DEPLOY.md):
 #   host label / runner label : callisto
 #   server clone path         : /Users/nickgreenway/docker/mealie/mealie-mcp
-#   compose file              : /Users/nickgreenway/docker/mealie/docker-compose.yml
+#   compose project dir       : /Users/nickgreenway/docker/mealie
+#     (mealie-mcp service lives in docker-compose.override.yml there — box infra,
+#      auto-merged with the root-owned docker-compose.yml; keeps that file untouched)
 #   compose service           : mealie-mcp
 
 on:
@@ -38,20 +40,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The live clone the box builds from (owned by the runner's user).
-          DIR="/Users/nickgreenway/docker/mealie/mealie-mcp"
-          # Compose file that defines the mealie-mcp service, and the service name.
-          COMPOSE_FILE="/Users/nickgreenway/docker/mealie/docker-compose.yml"
+          # Docker Desktop's CLI isn't on the login-less runner PATH by default.
+          export PATH="/usr/local/bin:$PATH"
+
+          # The git clone the box builds from (owned by the runner's user).
+          CLONE_DIR="/Users/nickgreenway/docker/mealie/mealie-mcp"
+          # The Mealie compose PROJECT dir. The mealie-mcp service is defined in
+          # docker-compose.override.yml here (box infra, not in the repo); a bare
+          # `docker compose` from this dir auto-merges base + override.
+          PROJECT_DIR="/Users/nickgreenway/docker/mealie"
           SERVICE="mealie-mcp"
 
-          if [ ! -d "$DIR/.git" ]; then
-            echo "::error title=Server clone missing::No git repo at $DIR — is the runner running as the user that owns the clone?"
+          if [ ! -d "$CLONE_DIR/.git" ]; then
+            echo "::error title=Server clone missing::No git repo at $CLONE_DIR — is the runner running as the user that owns the clone?"
             exit 1
           fi
 
-          cd "$DIR"
-          echo "Deploying into: $DIR"
-
+          cd "$CLONE_DIR"
+          echo "Pulling into: $CLONE_DIR"
           before="$(git rev-parse HEAD)"
           git pull --ff-only
           after="$(git rev-parse HEAD)"
@@ -65,12 +71,12 @@ jobs:
           git diff --name-only "$before" "$after"
 
           echo "Rebuilding image and recreating container..."
-          docker compose -f "$COMPOSE_FILE" build "$SERVICE"
-          docker compose -f "$COMPOSE_FILE" up -d "$SERVICE"
+          cd "$PROJECT_DIR"
+          docker compose up -d --build "$SERVICE"
 
           echo "Waiting for /health..."
           for i in $(seq 1 30); do
-            if docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE" \
+            if docker compose exec -T "$SERVICE" \
                  python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)" 2>/dev/null; then
               echo "Container healthy."
               exit 0
