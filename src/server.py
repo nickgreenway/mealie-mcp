@@ -2533,8 +2533,13 @@ def resource_shopping_list_detail(list_id: str) -> str:
 # =============================================================================
 
 if __name__ == "__main__":
+    # In safe mode (MEALIE_MCP_MODE=safe) unregister risky tools before the
+    # server starts so they are never advertised. No-op in full mode (default).
+    from safe_mode import apply_safe_mode
+
     # Transport is selected via MCP_TRANSPORT (default: stdio, unchanged
-    # behavior). See src/http_runtime.py for the opt-in http transport.
+    # behavior). See src/http_runtime.py for the opt-in http transport + auth.
     from http_runtime import run as run_server
 
+    apply_safe_mode(mcp)
     run_server(mcp)
